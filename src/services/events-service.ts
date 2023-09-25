@@ -2,7 +2,6 @@ import { Event } from '@prisma/client';
 import dayjs from 'dayjs';
 import { eventRepository } from '@/repositories';
 import { exclude } from '@/utils/prisma-utils';
-// eslint-disable-next-line import/namespace
 import { notFoundError } from '@/errors';
 
 async function getFirstEvent(): Promise<GetFirstEventResult> {

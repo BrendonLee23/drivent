@@ -1,4 +1,5 @@
-import { prisma, TicketStatus } from '@prisma/client';
+import { TicketStatus } from '@prisma/client';
+import { prisma } from '@/config';
 import { ReturnTicket } from '@/services';
 
 async function getTicket(userId: number): Promise<ReturnTicket | null> {
