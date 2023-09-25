@@ -2,14 +2,14 @@ import { faker } from '@faker-js/faker';
 import dayjs from 'dayjs';
 import httpStatus from 'http-status';
 import supertest from 'supertest';
+// eslint-disable-next-line import/namespace
 import { createEvent, createUser } from '../factories';
+// eslint-disable-next-line import/namespace
 import { cleanDb } from '../helpers';
 import { duplicatedEmailError } from '@/errors';
-<<<<<<< HEAD
+
 import app, { init, close } from '@/app';
-=======
-import app, { init } from '@/app';
->>>>>>> ccb830af41f1e46b91cbca8bba2655415a1ac3b1
+
 import { prisma } from '@/config';
 
 beforeAll(async () => {
@@ -17,13 +17,10 @@ beforeAll(async () => {
   await cleanDb();
 });
 
-<<<<<<< HEAD
 afterAll(async () => {
   await close();
 });
 
-=======
->>>>>>> ccb830af41f1e46b91cbca8bba2655415a1ac3b1
 const server = supertest(app);
 
 describe('POST /users', () => {

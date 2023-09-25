@@ -2,11 +2,9 @@ import faker from '@faker-js/faker';
 import { createUser } from '../factories';
 import { cleanDb } from '../helpers';
 import { prisma } from '@/config';
-<<<<<<< HEAD
+
 import { init, close } from '@/app';
-=======
-import { init } from '@/app';
->>>>>>> ccb830af41f1e46b91cbca8bba2655415a1ac3b1
+
 import { authenticationService } from '@/services';
 import { invalidCredentialsError } from '@/errors';
 
@@ -15,13 +13,10 @@ beforeAll(async () => {
   await cleanDb();
 });
 
-<<<<<<< HEAD
 afterAll(async () => {
   await close();
 });
 
-=======
->>>>>>> ccb830af41f1e46b91cbca8bba2655415a1ac3b1
 describe('signIn', () => {
   const generateParams = () => ({
     email: faker.internet.email(),

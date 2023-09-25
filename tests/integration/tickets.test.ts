@@ -3,8 +3,8 @@ import { TicketStatus } from '@prisma/client';
 import httpStatus from 'http-status';
 import * as jwt from 'jsonwebtoken';
 import supertest from 'supertest';
-import { createEnrollmentWithAddress, createUser, createTicketType, createTicket } from '../factories';
 import { cleanDb, generateValidToken } from '../helpers';
+import { createEnrollmentWithAddress, createUser, createTicketType, createTicket } from '../factories';
 import { prisma } from '@/config';
 import app, { init } from '@/app';
 
