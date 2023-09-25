@@ -50,8 +50,6 @@ export function handleApplicationErrors(
     });
   }
 
-<<<<<<< HEAD
-=======
   if (err.name === 'EnrollmentNotFoundError') {
     return res.sendStatus(httpStatus.BAD_REQUEST);
   }
@@ -60,7 +58,6 @@ export function handleApplicationErrors(
     return res.status(httpStatus.BAD_REQUEST).send(err.message);
   }
 
->>>>>>> ccb830af41f1e46b91cbca8bba2655415a1ac3b1
   if (err.hasOwnProperty('status') && err.name === 'RequestError') {
     return res.status((err as RequestError).status).send({
       message: err.message,
