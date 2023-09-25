@@ -1,7 +1,7 @@
 import { prisma, TicketStatus } from '@prisma/client';
-import { TicketResponse } from '@/services/tickets-service';
+import { ReturnTicket } from '@/services';
 
-async function getTicket(userId: number): Promise<TicketResponse | null> {
+async function getTicket(userId: number): Promise<ReturnTicket | null> {
   const ticket = await prisma.ticket.findFirst({
     where: {
       Enrollment: {
@@ -12,14 +12,14 @@ async function getTicket(userId: number): Promise<TicketResponse | null> {
       TicketType: true,
     },
   });
-  return ticket as TicketResponse;
+  return ticket as ReturnTicket;
 }
 
 async function getTicketTypes() {
   return prisma.ticketType.findMany();
 }
 
-async function createTicket(ticketId: number, enrollmentId: number): Promise<TicketResponse> {
+async function createTicket(ticketId: number, enrollmentId: number): Promise<ReturnTicket> {
   const ticket = await prisma.ticket.create({
     data: {
       enrollmentId: enrollmentId,
@@ -33,7 +33,7 @@ async function createTicket(ticketId: number, enrollmentId: number): Promise<Tic
     },
   });
 
-  const result: TicketResponse = {
+  const result: ReturnTicket = {
     id: ticket.id,
     status: ticket.status.toString(),
     ticketTypeId: ticket.ticketTypeId,

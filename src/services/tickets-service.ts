@@ -1,4 +1,6 @@
-import { ticketsRepository } from "@/repositories/tickets-repository";
+// eslint-disable-next-line import/named
+import { notFoundError } from '@/errors';
+import { ticketsRepository } from '@/repositories/tickets-repository';
 
 export type ReturnTicket = {
   id: number;
@@ -23,6 +25,14 @@ async function getTicketTypes() {
   return types;
 }
 
+async function getTicket(ownerId: number): Promise<ReturnTicket | null> {
+  const ticket = await ticketsRepository.getTicket(ownerId);
+  if (!ticket) throw notFoundError('Ticket not found');
+  return ticket;
+}
+
 export const ticketService = {
   getTicketTypes,
+  getTicket,
 };
+export { ReturnTicket };
