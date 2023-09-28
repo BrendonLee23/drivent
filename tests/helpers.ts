@@ -6,7 +6,6 @@ import { prisma } from '@/config';
 
 export async function cleanDb() {
   await prisma.address.deleteMany({});
-
   await prisma.payment.deleteMany({});
   await prisma.ticket.deleteMany({});
   await prisma.ticketType.deleteMany({});
@@ -16,9 +15,12 @@ export async function cleanDb() {
   await prisma.user.deleteMany({});
   await prisma.user.deleteMany({});
 }
+
 export async function generateValidToken(user?: User) {
   const incomingUser = user || (await createUser());
   const token = jwt.sign({ userId: incomingUser.id }, process.env.JWT_SECRET);
+
   await createSession(token);
+
   return token;
 }

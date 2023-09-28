@@ -7,7 +7,7 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
   const authHeader = req.header('Authorization');
   if (!authHeader) throw unauthorizedError();
 
-  const token = authHeader.split(' ')[0];
+  const token = authHeader.split(' ')[1];
   if (!token) throw unauthorizedError();
 
   const { userId } = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;

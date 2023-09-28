@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import { ObjectSchema } from 'joi';
-// eslint-disable-next-line import/namespace
 import { invalidDataError } from '@/errors';
 
 export function validateBody<T>(schema: ObjectSchema<T>): ValidationMiddleware {
