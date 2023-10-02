@@ -329,5 +329,44 @@ describe('GET /hotels/:hotelId', () => {
       const response = await server.get(`/hotels/1`).set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.NOT_FOUND);
     });
+    it('should respond with status 200 and a list the specif hotel rooms', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
+
+      const response = await server.get(`/hotels/${hotelInfo.id}`).set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.OK);
+      expect(response.body).toEqual({
+        id: expect.any(Number),
+        name: expect.any(String),
+        image: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        Rooms: expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(Number),
+            name: expect.any(String),
+            capacity: expect.any(Number),
+            hotelId: expect.any(Number),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          }),
+        ]),
+      });
+    });
   });
 });
