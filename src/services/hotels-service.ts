@@ -7,6 +7,13 @@ async function getHotels() {
   return allHotels;
 }
 
+async function getHotelById(id: number) {
+  const hotelInfo = await hotelsRepository.getHotelById(id);
+  if (hotelInfo == null) throw notFoundError();
+  return hotelInfo;
+}
+
 export const hotelsService = {
   getHotels,
+  getHotelById,
 };
