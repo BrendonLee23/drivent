@@ -1,6 +1,6 @@
 import { NextFunction, Response } from 'express';
 import { AuthenticatedRequest } from './authentication-middleware';
-import { notFoundError, notPaidError } from '@/errors';
+import { notFoundError, paymentRequiredError } from '@/errors';
 import { enrollmentRepository, ticketsRepository } from '@/repositories';
 
 export async function userValidate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -9,6 +9,6 @@ export async function userValidate(req: AuthenticatedRequest, res: Response, nex
   const ticketInfo = await ticketsRepository.findTicketByEnrollmentId(enrollmentInfo.id);
   if (ticketInfo == null) throw notFoundError();
   if (ticketInfo.status == 'RESERVED' || ticketInfo.TicketType.isRemote || !ticketInfo.TicketType.includesHotel)
-    throw notPaidError();
+    throw paymentRequiredError();
   next();
 }

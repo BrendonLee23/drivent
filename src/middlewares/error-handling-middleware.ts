@@ -6,6 +6,7 @@ export function handleApplicationErrors(
   err: RequestError | ApplicationError | Error,
   _req: Request,
   res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction,
 ) {
   if (err.name === 'CannotEnrollBeforeStartDateError') {
@@ -64,8 +65,12 @@ export function handleApplicationErrors(
     });
   }
 
-  /* eslint-disable-next-line no-console */
-  console.error(err);
+  if (err.name === 'PaymentRequiredError') {
+    return res.status(httpStatus.PAYMENT_REQUIRED).send({
+      message: err.message,
+    });
+  }
+
   res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
     error: 'InternalServerError',
     message: 'Internal Server Error',
