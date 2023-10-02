@@ -145,5 +145,40 @@ describe('GET /hotels', () => {
       const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
     });
+    it('should respond with status 200 and a list with the hotels', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      const hotelInfo2 = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+        await generateRoom(hotelInfo2.id, i + 1);
+      }
+
+      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.OK);
+      expect(response.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(Number),
+            name: expect.any(String),
+            image: expect.any(String),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          }),
+        ]),
+      );
+    });
   });
 });
