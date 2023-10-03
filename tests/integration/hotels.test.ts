@@ -1,12 +1,14 @@
+import * as jwt from 'jsonwebtoken';
 import supertest from 'supertest';
 import httpStatus from 'http-status';
 import faker from '@faker-js/faker';
-import * as jwt from 'jsonwebtoken';
 import { TicketStatus } from '@prisma/client';
-import { createEnrollmentWithAddress, createPayment, createTicket, createTicketType, createUser } from '../factories';
 import { cleanDb, generateValidToken } from '../helpers';
-import { createHotel, createRoomWithHotelId } from '../factories/hotels-factory';
+import { createEnrollmentWithAddress, createTicket, createUser, generateHotel, generateRoom } from '../factories';
 import app, { init } from '@/app';
+import { prisma } from '@/config';
+
+const server = supertest(app);
 
 beforeAll(async () => {
   await init();
@@ -16,24 +18,21 @@ beforeEach(async () => {
   await cleanDb();
 });
 
-const server = supertest(app);
-
 describe('GET /hotels', () => {
-  it('should respond with status 401 if no token is given', async () => {
+  it('should return status code 401 if no token is given', async () => {
     const response = await server.get('/hotels');
 
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
 
-  it('should respond with status 401 if given token is not valid', async () => {
+  it('should return status code 401 if given token is not valid', async () => {
     const token = faker.lorem.word();
 
     const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
-
-  it('should respond with status 401 if there is no session for given token', async () => {
+  it('should return status code 401 if there is no session for given token', async () => {
     const userWithoutSession = await createUser();
     const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
 
@@ -41,18 +40,16 @@ describe('GET /hotels', () => {
 
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
-
   describe('when token is valid', () => {
-    it('should respond with status 404 when user has no enrollment', async () => {
+    it('should return status code 404 when there is no enrollment for given user', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
 
       const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toEqual(httpStatus.NOT_FOUND);
+      expect(response.status).toBe(httpStatus.NOT_FOUND);
     });
-
-    it('should respond with status 404 when user has enrollment but no ticket', async () => {
+    it('should return status code 404 when user doesnt have a ticket yet', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       await createEnrollmentWithAddress(user);
@@ -62,91 +59,138 @@ describe('GET /hotels', () => {
       expect(response.status).toEqual(httpStatus.NOT_FOUND);
     });
 
-    it('should respond with status 404 when there are no hotels', async () => {
+    it('should return status code 404 when there is no hotels', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, 10000);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
 
       const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.NOT_FOUND);
     });
-
-    it('should respond with status 402 when user ticket is remote ', async () => {
+    it('should return status code 402 when ticket status is RESERVED', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
-
-      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
-    });
-
-    it('should respond with status 402 when ticket is not paid ', async () => {
-      const user = await createUser();
-      const token = await generateValidToken(user);
-      const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(true);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
       await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED);
 
-      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
 
+      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
     });
 
-    it('should respond with status 402 when ticket doenst include hotel', async () => {
+    it('should return status code 402 when there is no hotel included', async () => {
+      //continuar
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, false);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
-
-      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
-    });
-
-    it('should respond with status 200 and a list of hotels', async () => {
-      const user = await createUser();
-      const token = await generateValidToken(user);
-      const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
-
-      const createdHotel = await createHotel();
-
-      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.OK);
-
-      expect(response.body).toEqual([
-        {
-          id: createdHotel.id,
-          name: createdHotel.name,
-          image: createdHotel.image,
-          createdAt: createdHotel.createdAt.toISOString(),
-          updatedAt: createdHotel.updatedAt.toISOString(),
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: false,
         },
-      ]);
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
+
+      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
+    });
+
+    it('should return status code 402 when is remote', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: true,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
+
+      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
+    });
+    it('should return status code 200 and a list with the hotels', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      const hotelInfo2 = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+        await generateRoom(hotelInfo2.id, i + 1);
+      }
+
+      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.OK);
+      expect(response.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(Number),
+            name: expect.any(String),
+            image: expect.any(String),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          }),
+        ]),
+      );
     });
   });
 });
 
 describe('GET /hotels/:hotelId', () => {
-  it('should respond with status 401 if no token is given', async () => {
+  it('should return status code 401 if no token is given', async () => {
     const response = await server.get('/hotels/1');
 
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
 
-  it('should respond with status 401 if given token is not valid', async () => {
+  it('should return status code 401 if given token is not valid', async () => {
     const token = faker.lorem.word();
 
     const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
@@ -154,7 +198,7 @@ describe('GET /hotels/:hotelId', () => {
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
 
-  it('should respond with status 401 if there is no session for given token', async () => {
+  it('should return status code 401 if there is no session for given token', async () => {
     const userWithoutSession = await createUser();
     const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
 
@@ -162,20 +206,17 @@ describe('GET /hotels/:hotelId', () => {
 
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
-
   describe('when token is valid', () => {
-    it('should respond with status 404 when user has no enrollment ', async () => {
+    it('should return status code 404 when there is no enrollment for given user', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
 
-      await createTicketType(true);
-
       const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toEqual(httpStatus.NOT_FOUND);
+      expect(response.status).toBe(httpStatus.NOT_FOUND);
     });
 
-    it('should respond with status 404 when user has enrollment but no ticket', async () => {
+    it('should return status code 404 when user doesnt have a ticket yet', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       await createEnrollmentWithAddress(user);
@@ -185,115 +226,146 @@ describe('GET /hotels/:hotelId', () => {
       expect(response.status).toEqual(httpStatus.NOT_FOUND);
     });
 
-    it('should respond with status 404 for invalid hotel id', async () => {
+    it('should return status code 404 when there is no hotels', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
 
-      await createHotel();
-
-      const response = await server.get('/hotels/100000').set('Authorization', `Bearer ${token}`);
-
+      const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.NOT_FOUND);
     });
-
-    it('should respond with status 402 when user ticket is remote ', async () => {
+    it('should return status code 402 when ticket status is RESERVED', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
-
-      const response = await server.get(`/hotels/1`).set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
-    });
-
-    it('should respond with status 402 when ticket is not paid ', async () => {
-      const user = await createUser();
-      const token = await generateValidToken(user);
-      const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(true);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
       await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED);
 
-      const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
 
+      const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
     });
 
-    it('should respond with status 402 when ticket doenst include hotel', async () => {
+    it('should return status code 402 when there is no hotel included', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, false);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
-
-      const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
-    });
-
-    it('should respond with status 200 and hotel with rooms', async () => {
-      const user = await createUser();
-      const token = await generateValidToken(user);
-      const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
-
-      const createdHotel = await createHotel();
-
-      const createdRoom = await createRoomWithHotelId(createdHotel.id);
-
-      const response = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.OK);
-
-      expect(response.body).toEqual({
-        id: createdHotel.id,
-        name: createdHotel.name,
-        image: createdHotel.image,
-        createdAt: createdHotel.createdAt.toISOString(),
-        updatedAt: createdHotel.updatedAt.toISOString(),
-        Rooms: [
-          {
-            id: createdRoom.id,
-            name: createdRoom.name,
-            capacity: createdRoom.capacity,
-            hotelId: createdHotel.id,
-            createdAt: createdRoom.createdAt.toISOString(),
-            updatedAt: createdRoom.updatedAt.toISOString(),
-          },
-        ],
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: false,
+        },
       });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
+
+      const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
     });
 
-    it('should respond with status 200 and hotel with no rooms', async () => {
+    it('should return status code 402 when is remote', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
       const enrollment = await createEnrollmentWithAddress(user);
-      const ticketType = await createTicketType(false, true);
-      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
-      await createPayment(ticket.id, ticketType.price);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: true,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
 
-      const createdHotel = await createHotel();
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
 
-      const response = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`);
+      const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.PAYMENT_REQUIRED);
+    });
 
+    it('should return status code 404 when there is no hotel with the id passed', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const response = await server.get(`/hotels/1`).set('Authorization', `Bearer ${token}`);
+      expect(response.status).toEqual(httpStatus.NOT_FOUND);
+    });
+    it('should return status code 200 and a list the specif hotel rooms', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await prisma.ticketType.create({
+        data: {
+          name: faker.name.findName(),
+          price: faker.datatype.number(),
+          isRemote: false,
+          includesHotel: true,
+        },
+      });
+      await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+
+      const hotelInfo = await generateHotel();
+      for (let i = 0; i < Number(faker.random.numeric()); i++) {
+        await generateRoom(hotelInfo.id, i + 1);
+      }
+
+      const response = await server.get(`/hotels/${hotelInfo.id}`).set('Authorization', `Bearer ${token}`);
       expect(response.status).toEqual(httpStatus.OK);
-
       expect(response.body).toEqual({
-        id: createdHotel.id,
-        name: createdHotel.name,
+        id: expect.any(Number),
+        name: expect.any(String),
         image: expect.any(String),
-        createdAt: createdHotel.createdAt.toISOString(),
-        updatedAt: createdHotel.updatedAt.toISOString(),
-        Rooms: [],
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        Rooms: expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.any(Number),
+            name: expect.any(String),
+            capacity: expect.any(Number),
+            hotelId: expect.any(Number),
+            createdAt: expect.any(String),
+            updatedAt: expect.any(String),
+          }),
+        ]),
       });
     });
   });
