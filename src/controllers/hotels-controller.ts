@@ -1,13 +1,19 @@
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import httpStatus from 'http-status';
-import { hotelsService } from '@/services/hotels-service';
+import { AuthenticatedRequest } from '@/middlewares';
+import { hotelsService } from '@/services';
 
-export async function getHotels(req: Request, res: Response) {
-  const allHotels = await hotelsService.getHotels();
-  res.status(httpStatus.OK).send(allHotels);
+export async function getHotels(req: AuthenticatedRequest, res: Response) {
+  const { userId } = req;
+
+  const hotels = await hotelsService.getHotels(userId);
+  res.status(httpStatus.OK).send(hotels);
 }
-export async function getHotelById(req: Request, res: Response) {
+
+export async function getHotelsWithRooms(req: AuthenticatedRequest, res: Response) {
+  const { userId } = req;
   const hotelId = Number(req.params.hotelId);
-  const hotelInfo = await hotelsService.getHotelById(hotelId);
-  res.status(httpStatus.OK).send(hotelInfo);
+
+  const hotelWithRooms = await hotelsService.getHotelsWithRooms(userId, hotelId);
+  res.status(httpStatus.OK).send(hotelWithRooms);
 }
