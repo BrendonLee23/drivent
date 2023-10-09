@@ -214,3 +214,78 @@ describe('postBooking test', () => {
     });
   });
 });
+
+describe('editBooking test', () => {
+  it('should return forbidenError when user has no booking', async () => {
+    jest.spyOn(bookingsRepository, 'getBooking').mockResolvedValue(null);
+
+    const promise = bookingsService.putBooking(1, 2, 3);
+
+    expect(promise).rejects.toEqual(forbidenError());
+  });
+
+  it("should return notFounError when didn't find room", async () => {
+    jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
+      return { id: 1, userId: 1, roomId: 1 };
+    });
+
+    jest.spyOn(hotelRepository, 'findRoomById').mockResolvedValue(null);
+
+    const promise = bookingsService.putBooking(1, 2, 3);
+
+    expect(promise).rejects.toEqual(notFoundError());
+  });
+
+  it('should return forbidenError when room is full', async () => {
+    jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
+      return { id: 1, userId: 1, roomId: 1 };
+    });
+
+    jest.spyOn(hotelRepository, 'findRoomById').mockImplementationOnce((): any => {
+      return {
+        id: 1,
+        capacity: 0,
+      };
+    });
+
+    jest.spyOn(bookingsRepository, 'getBookingByRoomId').mockImplementationOnce((): any => {
+      return [
+        { id: 1, userId: 1, roomId: 1 },
+        { id: 2, userId: 2, roomId: 1 },
+      ];
+    });
+
+    const promise = bookingsService.putBooking(3, 1, 1);
+
+    expect(promise).rejects.toEqual(forbidenError());
+  });
+
+  it('should return bookingId', async () => {
+    jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
+      return { id: 1, userId: 1, roomId: 1 };
+    });
+
+    jest.spyOn(hotelRepository, 'findRoomById').mockImplementationOnce((): any => {
+      return {
+        id: 1,
+        capacity: 2,
+      };
+    });
+
+    jest.spyOn(bookingsRepository, 'getBookingByRoomId').mockImplementationOnce((): any => {
+      return [{ id: 1, userId: 1, roomId: 1 }];
+    });
+
+    jest.spyOn(bookingsRepository, 'putBooking').mockImplementationOnce((): any => {
+      return {
+        id: 1,
+      };
+    });
+
+    const booking = await bookingsService.putBooking(2, 1, 3);
+
+    expect(booking).toEqual({
+      bookingId: 1,
+    });
+  });
+});
