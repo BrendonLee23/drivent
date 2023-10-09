@@ -6,7 +6,6 @@ export function handleApplicationErrors(
   err: RequestError | ApplicationError | Error,
   _req: Request,
   res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction,
 ) {
   if (err.name === 'CannotEnrollBeforeStartDateError') {
@@ -33,8 +32,16 @@ export function handleApplicationErrors(
     });
   }
 
+  if (err.name === 'BadRequestError') {
+    return res.status(httpStatus.BAD_REQUEST).send({
+      message: err.message,
+    });
+  }
+
   if (err.name === 'ForbidenError') {
-    return res.status(httpStatus.FORBIDDEN).send(err.message);
+    return res.status(httpStatus.FORBIDDEN).send({
+      message: err.message,
+    });
   }
 
   if (err.name === 'NotFoundError') {
@@ -72,7 +79,6 @@ export function handleApplicationErrors(
       message: err.message,
     });
   }
-
   res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
     error: 'InternalServerError',
     message: 'Internal Server Error',

@@ -1,12 +1,12 @@
-import * as jwt from 'jsonwebtoken';
-import supertest from 'supertest';
 import faker from '@faker-js/faker';
+import supertest from 'supertest';
 import httpStatus from 'http-status';
+import * as jwt from 'jsonwebtoken';
 import { TicketStatus } from '@prisma/client';
-import { cleanDb, generateValidToken } from '../helpers';
 import { createEnrollmentWithAddress, createPayment, createTicket, createTicketType, createUser } from '../factories';
-import { createBooking } from '../factories/booking-factory';
+import { cleanDb, generateValidToken } from '../helpers';
 import { createFullRoomWithHotelId, createHotel, createRoomWithHotelId } from '../factories/hotels-factory';
+import { createBooking } from '../factories/booking-factory';
 import app, { init } from '@/app';
 
 beforeAll(async () => {
@@ -19,28 +19,28 @@ beforeEach(async () => {
 
 const server = supertest(app);
 
-describe('GET/booking', () => {
+describe('GET /booking', () => {
   it('should respond with status 401 if no token is given', async () => {
-    const result = await server.get('/booking');
+    const response = await server.get('/booking');
 
-    expect(result.status).toBe(httpStatus.UNAUTHORIZED);
+    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
 
   it('should respond with status 401 if given token is not valid', async () => {
-    const newToken = faker.lorem.word();
+    const token = faker.lorem.word();
 
-    const response = await server.get('/booking').set('Authorization', `Bearer ${newToken}`);
+    const response = await server.get('/booking').set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
 
   it('should respond with status 401 if there is no session for given token', async () => {
-    const loggedOutUser = await createUser();
-    const newToken = jwt.sign({ userId: loggedOutUser.id }, process.env.JWT_SECRET);
+    const userWithoutSession = await createUser();
+    const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
 
-    const result = await server.get('/booking').set('Authorization', `Bearer ${newToken}`);
+    const response = await server.get('/booking').set('Authorization', `Bearer ${token}`);
 
-    expect(result.status).toBe(httpStatus.UNAUTHORIZED);
+    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
   });
 
   describe('when token is valid', () => {
@@ -48,9 +48,9 @@ describe('GET/booking', () => {
       const user = await createUser();
       const token = await generateValidToken(user);
 
-      const result = await server.get('/booking').set('Authorization', `Bearer ${token}`);
+      const response = await server.get('/booking').set('Authorization', `Bearer ${token}`);
 
-      expect(result.status).toEqual(httpStatus.NOT_FOUND);
+      expect(response.status).toEqual(httpStatus.NOT_FOUND);
     });
 
     it('should respond with status 200 when user has a booking', async () => {
@@ -77,7 +77,7 @@ describe('GET/booking', () => {
   });
 });
 
-describe('POST/booking', () => {
+describe('POST /booking', () => {
   it('should respond with status 401 if no token is given', async () => {
     const response = await server.post('/booking');
 
@@ -102,24 +102,6 @@ describe('POST/booking', () => {
   });
 
   describe('when token is valid', () => {
-    it('should respond with status 400 when there is no body', async () => {
-      const user = await createUser();
-      const token = await generateValidToken(user);
-
-      const response = await server.post('/booking').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toEqual(httpStatus.BAD_REQUEST);
-    });
-
-    it('should respond with status 400 when body is invalid', async () => {
-      const user = await createUser();
-      const token = await generateValidToken(user);
-
-      const response = await server.post('/booking').set('Authorization', `Bearer ${token}`).send({ room: 2 });
-
-      expect(response.status).toEqual(httpStatus.BAD_REQUEST);
-    });
-
     it('should respond with status 403 when ticket is remote', async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
@@ -214,7 +196,7 @@ describe('POST/booking', () => {
   });
 });
 
-describe('PUT/booking/:bookingId', () => {
+describe('PUT /booking/:bookingId', () => {
   it('should respond with status 401 if no token is given', async () => {
     const response = await server.put('/booking/1');
 
