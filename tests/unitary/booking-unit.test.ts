@@ -16,6 +16,7 @@ describe('getBooking test', () => {
   });
 
   it('should return the user booking', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
       return {
         id: 2,
@@ -48,12 +49,14 @@ describe('getBooking test', () => {
 
 describe('postBooking test', () => {
   it('should return forbidenError when ticket is remote', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(enrollmentRepository, 'findWithAddressByUserId').mockImplementationOnce((): any => {
       return {
         id: 1,
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(ticketsRepository, 'findTicketByEnrollmentId').mockImplementationOnce((): any => {
       return {
         TicketType: {
@@ -70,12 +73,14 @@ describe('postBooking test', () => {
   });
 
   it("should return forbidenError when ticket doesn't include hotel", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(enrollmentRepository, 'findWithAddressByUserId').mockImplementationOnce((): any => {
       return {
         id: 1,
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(ticketsRepository, 'findTicketByEnrollmentId').mockImplementationOnce((): any => {
       return {
         status: 'PAID',
@@ -92,12 +97,14 @@ describe('postBooking test', () => {
   });
 
   it('should return forbidenError when ticket is not paid', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(enrollmentRepository, 'findWithAddressByUserId').mockImplementationOnce((): any => {
       return {
         id: 1,
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(ticketsRepository, 'findTicketByEnrollmentId').mockImplementationOnce((): any => {
       return {
         status: 'RESERVED',
@@ -114,12 +121,14 @@ describe('postBooking test', () => {
   });
 
   it("should return notFounError when didn't find room", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(enrollmentRepository, 'findWithAddressByUserId').mockImplementationOnce((): any => {
       return {
         id: 1,
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(ticketsRepository, 'findTicketByEnrollmentId').mockImplementationOnce((): any => {
       return {
         status: 'PAID',
@@ -138,12 +147,14 @@ describe('postBooking test', () => {
   });
 
   it('should return forbidenError when room is full', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(enrollmentRepository, 'findWithAddressByUserId').mockImplementationOnce((): any => {
       return {
         id: 1,
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(ticketsRepository, 'findTicketByEnrollmentId').mockImplementationOnce((): any => {
       return {
         status: 'PAID',
@@ -154,6 +165,7 @@ describe('postBooking test', () => {
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(hotelRepository, 'findRoomById').mockImplementationOnce((): any => {
       return {
         id: 1,
@@ -161,6 +173,7 @@ describe('postBooking test', () => {
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBookingByRoomId').mockImplementationOnce((): any => {
       return [
         { id: 1, userId: 1, roomId: 1 },
@@ -174,12 +187,14 @@ describe('postBooking test', () => {
   });
 
   it('should return bookingId', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(enrollmentRepository, 'findWithAddressByUserId').mockImplementationOnce((): any => {
       return {
         id: 1,
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(ticketsRepository, 'findTicketByEnrollmentId').mockImplementationOnce((): any => {
       return {
         status: 'PAID',
@@ -190,6 +205,7 @@ describe('postBooking test', () => {
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(hotelRepository, 'findRoomById').mockImplementationOnce((): any => {
       return {
         id: 1,
@@ -197,10 +213,12 @@ describe('postBooking test', () => {
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBookingByRoomId').mockImplementationOnce((): any => {
       return [{ id: 1, userId: 1, roomId: 1 }];
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'postBooking').mockImplementationOnce((): any => {
       return {
         id: 1,
@@ -225,6 +243,7 @@ describe('editBooking test', () => {
   });
 
   it("should return notFounError when didn't find room", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
       return { id: 1, userId: 1, roomId: 1 };
     });
@@ -237,10 +256,12 @@ describe('editBooking test', () => {
   });
 
   it('should return forbidenError when room is full', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
       return { id: 1, userId: 1, roomId: 1 };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(hotelRepository, 'findRoomById').mockImplementationOnce((): any => {
       return {
         id: 1,
@@ -248,6 +269,8 @@ describe('editBooking test', () => {
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBookingByRoomId').mockImplementationOnce((): any => {
       return [
         { id: 1, userId: 1, roomId: 1 },
@@ -261,10 +284,12 @@ describe('editBooking test', () => {
   });
 
   it('should return bookingId', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBooking').mockImplementationOnce((): any => {
       return { id: 1, userId: 1, roomId: 1 };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(hotelRepository, 'findRoomById').mockImplementationOnce((): any => {
       return {
         id: 1,
@@ -272,10 +297,13 @@ describe('editBooking test', () => {
       };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'getBookingByRoomId').mockImplementationOnce((): any => {
       return [{ id: 1, userId: 1, roomId: 1 }];
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jest.spyOn(bookingsRepository, 'putBooking').mockImplementationOnce((): any => {
       return {
         id: 1,
